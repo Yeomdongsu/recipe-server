@@ -107,6 +107,8 @@ class RecipeListResource(Resource) :
 class RecipeResource(Resource) :
     # Path(경로)에 숫자나 문자가 바뀌면서 처리되는 경우에는
     # 해당 변수를 파라미터에 꼭 써줘야 한다.
+
+    # GET, DELETE 메소드는 Body에 데이터를 전달하지 않는다.
     def get(self, recipe_id) :
 
         # 1. 클라이언트로부터 데이터를 받아온다.
@@ -151,3 +153,64 @@ class RecipeResource(Resource) :
             return {"result" : "fail", "message" : "해당 데이터가 없습니다."}, 400
         else :
             return {"result" : "success", "item" : result_list}, 200
+        
+    def put(self, recipe_id) : 
+        
+        # 1. 클라이언트로부터 데이터를 받아온다.
+        data = request.get_json()
+
+        try :
+            connection = get_connection()
+
+            query = '''
+                    update recipe
+                    set name = %s, description = %s, num_of_servings = %s, cook_time = %s, directions = %s 
+                    where id = %s; 
+                    '''
+
+            record = (data["name"], data["description"], data["num_of_servings"],
+                      data["cook_time"], data["directions"], recipe_id)
+            
+            cursor = connection.cursor()
+            cursor.execute(query, record)
+
+            connection.commit()
+
+            cursor.close()
+            connection.close()
+            
+        except Error as e :
+            print(e)
+            cursor.close()
+            connection.close()
+            return {"result" : "fail", "error" : str(e)}, 500
+
+        return {"result" : "success"}, 200   
+
+    def delete(self, recipe_id) :
+
+        connection = get_connection()
+
+        try : 
+            query = '''
+                    delete from recipe
+                    where id = %s;
+                    '''
+
+            record = (recipe_id, )
+
+            cursor = connection.cursor()
+            cursor.execute(query, record)
+
+            connection.commit()
+
+            cursor.close()
+            connection.close()
+
+        except Error as e :
+            print(e)
+            cursor.close()
+            connection.close()
+            return {"result" : "fail", "error" : str(e)}, 500
+        
+        return {"result" : "success"}, 200
