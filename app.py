@@ -1,6 +1,7 @@
 from flask import Flask
 from flask_restful import Api
-from resources.recipe import RecipeListResource, RecipeResource
+from resources.recipe import RecipeListResource, RecipePublishResource, RecipeResource
+from resources.user import UserRegisterResource
 
 # flask 프레임워크를 이용한 Restful API 서버 개발
 
@@ -13,6 +14,8 @@ api = Api(app)
 # 리소스(API코드)와 경로를 연결한다.
 api.add_resource(RecipeListResource, "/recipes")
 api.add_resource(RecipeResource, "/recipes/<int:recipe_id>") # <타입:변수명>
+api.add_resource(RecipePublishResource, "/recipes/<int:recipe_id>/publish")
+api.add_resource(UserRegisterResource, "/user/register")
 
 if __name__ == "__main__" :
     app.run()
