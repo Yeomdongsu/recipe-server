@@ -1,8 +1,8 @@
-# flask 프레임워크를 이용한 Restful API 서버 개발
-
 from flask import Flask
 from flask_restful import Api
 from resources.recipe import RecipeListResource
+
+# flask 프레임워크를 이용한 Restful API 서버 개발
 
 app = Flask(__name__)
 

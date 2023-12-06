@@ -24,7 +24,8 @@ class RecipeListResource(Resource) :
             query = '''insert into recipe
                         (name, description, num_of_servings, cook_time, directions)
                         values
-                        (%s, %s, %s, %s, %s);'''
+                        (%s, %s, %s, %s, %s);
+                    '''
             
             # 2-3 위의 쿼리에 매칭되는 변수를 처리해 준다.
             # 단 라이브러리 특성상 튜플로 만들어야 한다.
@@ -56,3 +57,48 @@ class RecipeListResource(Resource) :
         # 보내줄 정보(json)와 http 상태코드를 return한다.
 
         return {"result" : "success"}, 200
+
+    def get(self) :
+        # 1. 클라이언트로부터 데이터를 받아온다.
+        # 없음
+
+        # 2. db에 저장된 데이터를 가져온다
+        try :
+            connection = get_connection()
+            
+            query = '''
+                    select * 
+                    from recipe;
+                    '''
+            
+            # 중요!! Select문에서 cursor를 만들 때 
+            # 클라이언트에게 json 형식으로 보내줘야 하기 때문에
+            # cursor() 함수의 인자 dictionary = True로 해준다.
+            # 하지 않으면 리스트와 튜플의 형식으로 받아 온다.
+            cursor = connection.cursor(dictionary=True)
+            
+            cursor.execute(query)
+
+            result_list = cursor.fetchall()
+
+            # datetime은 파이썬에서 사용하는 데이터타입이므로 json 형식이 아니다
+            # json은 문자열, 숫자만 가능하므로 datetime을 문자열로 바꿔줘야 한다 
+
+            i = 0
+            for row in result_list :
+                result_list[i]["created_at"] = row["created_at"].isoformat()
+                result_list[i]["updated_at"] = row["updated_at"].isoformat()
+                i = i+1
+            
+            cursor.close()
+            connection.close()
+
+        except Error as e :
+            print(e)
+            cursor.close()
+            connection.close()
+
+            # # 유저한테 알려줘야 한다.
+            return {"result" : "fail", "error" : str(e)}, 500
+        
+        return {"result" : "success", "items" : result_list, "count" : len(result_list)}, 200
