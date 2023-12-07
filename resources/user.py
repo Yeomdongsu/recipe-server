@@ -1,11 +1,12 @@
 from flask import request
-from flask_jwt_extended import create_access_token
+from flask_jwt_extended import create_access_token, get_jwt, jwt_required
 from flask_restful import Resource
 from mysql_connection import get_connection
 from mysql.connector import Error
 from utils import hash_password, check_password
 from email_validator import validate_email, EmailNotValidError
 
+# 회원가입
 class UserRegisterResource(Resource) :
     def post(self) :
         # 1. 클라이언트가 보낸 데이터를 받는다.
@@ -62,6 +63,7 @@ class UserRegisterResource(Resource) :
         # 7. 만든 JWT 토큰을 클라이언트에게 준다.
         return {"result" : "success", "access_token" : access_token}, 200 
 
+# 로그인
 class UserLoginResource(Resource) :
     def post(self) :
         
@@ -110,3 +112,16 @@ class UserLoginResource(Resource) :
         access_token = create_access_token(result_list[0]["id"])
         
         return  {"result" : "success", "access_token" : access_token}, 200
+    
+# 로그아웃
+jwt_blocklist = set()
+class UserLogoutResource(Resource) :
+
+    @jwt_required()
+    def delete(self) :
+        
+        jti = get_jwt()["jti"]
+
+        jwt_blocklist.add(jti)
+
+        return {"result" : "success"}, 200
