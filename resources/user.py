@@ -109,4 +109,4 @@ class UserLoginResource(Resource) :
         # JWT 인증 토큰 발급
         access_token = create_access_token(result_list[0]["id"])
         
-        return  {"result" : "success", "message" : "로그인 성공", "access_token" : access_token}, 200
+        return  {"result" : "success", "access_token" : access_token}, 200

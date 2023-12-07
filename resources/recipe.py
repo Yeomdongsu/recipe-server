@@ -1,4 +1,5 @@
 from flask import request
+from flask_jwt_extended import get_jwt_identity, jwt_required
 from flask_restful import Resource
 from mysql_connection import get_connection
 from mysql.connector import Error
@@ -9,27 +10,34 @@ from mysql.connector import Error
 class RecipeListResource(Resource) :
 
     # http Method와 동일한 함수명으로 오버라이딩!
+
+    # jwt 토큰이 헤더에 필수로 있어야 한다는 뜻
+    # 토큰이 없으면 이 API는 실행이 안된다.
+    @jwt_required()
     def post(self) :
         
         # 1. 클라이언트가 보내준 데이터가 있으면 그 데이터를 먼저 받아준다.
         data = request.get_json()
+
+        # 1-1. 헤더에 JWT 토큰이 있으면 토큰정보도 받아준다.
+        # 토큰에서, 토큰 만들때 사용한 데이터를 복호화 해서 가져다 준다.
+        user_id = get_jwt_identity()
         
         # 2. 받아온 레시피 데이터를 DB에 저장해야 한다.
-
         try :
             # 2-1 db에 연결하는 코드
             connection = get_connection()
 
             # 2-2 쿼리문 만들기 - insert 쿼리만들기
             query = '''insert into recipe
-                        (name, description, num_of_servings, cook_time, directions)
+                        (user_id, name, description, num_of_servings, cook_time, directions)
                         values
-                        (%s, %s, %s, %s, %s);
+                        (%s, %s, %s, %s, %s, %s);
                     '''
             
             # 2-3 위의 쿼리에 매칭되는 변수를 처리해 준다.
             # 단 라이브러리 특성상 튜플로 만들어야 한다.
-            record = (data["name"], data["description"], data["num_of_servings"],
+            record = (user_id, data["name"], data["description"], data["num_of_servings"],
                       data["cook_time"], data["directions"])
             
             # 2-4 커서를 가져온다.
@@ -215,7 +223,6 @@ class RecipeResource(Resource) :
         
         return {"result" : "success"}, 200
     
-
 class RecipePublishResource(Resource) :
     
     def put(self, recipe_id) :
@@ -277,3 +284,45 @@ class RecipePublishResource(Resource) :
             return {"result" : "fail", "error" : str(e)}, 500
         
         return {"result" : "success"}, 200
+    
+class RecipeMeResource(Resource) :
+
+    @jwt_required()
+    def get(self) :
+        
+        user_id = get_jwt_identity()
+        
+        try :     
+            connection = get_connection()
+
+            query = '''
+                    select * 
+                    from recipe
+                    where user_id = %s;
+                    '''
+            record = (user_id, )
+
+            cursor = connection.cursor(dictionary=True)
+            cursor.execute(query, record)
+
+            myList = cursor.fetchall()
+
+            i = 0
+            for row in myList :
+                myList[i]["created_at"] = row["created_at"].isoformat()
+                myList[i]["updated_at"] = row["updated_at"].isoformat()
+                i = i+1
+
+            cursor.close()
+            connection.close()
+
+        except Error as e :
+            print(e)
+            cursor.close()
+            connection.close()
+            return {"result" : "fail", "error" : str(e)}, 500
+
+        if len(myList) == 0 :
+            return {"error" : "작성한 레시피가 없습니다."}, 400
+
+        return {"result" : "success", "items" : myList, "count" : len(myList)}, 200
