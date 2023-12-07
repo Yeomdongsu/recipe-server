@@ -1,11 +1,18 @@
 from flask import Flask
+from flask_jwt_extended import JWTManager
 from flask_restful import Api
 from resources.recipe import RecipeListResource, RecipePublishResource, RecipeResource
 from resources.user import UserRegisterResource
+from config import Config
 
 # flask 프레임워크를 이용한 Restful API 서버 개발
 
 app = Flask(__name__)
+
+# 환경변수 세팅
+app.config.from_object(Config)
+# JWT 매니저를 초기화
+JWTManager(app)
 
 api = Api(app)
 
