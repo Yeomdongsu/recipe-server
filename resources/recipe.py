@@ -162,22 +162,25 @@ class RecipeResource(Resource) :
         else :
             return {"result" : "success", "item" : result_list}, 200
         
+    @jwt_required()    
     def put(self, recipe_id) : 
         
         # 1. 클라이언트로부터 데이터를 받아온다.
         data = request.get_json()
 
+        user_id = get_jwt_identity()
+        print(recipe_id, user_id)
         try :
             connection = get_connection()
 
             query = '''
                     update recipe
                     set name = %s, description = %s, num_of_servings = %s, cook_time = %s, directions = %s 
-                    where id = %s; 
+                    where id = %s and user_id = %s; 
                     '''
 
             record = (data["name"], data["description"], data["num_of_servings"],
-                      data["cook_time"], data["directions"], recipe_id)
+                      data["cook_time"], data["directions"], recipe_id, user_id)
             
             cursor = connection.cursor()
             cursor.execute(query, record)
@@ -194,18 +197,22 @@ class RecipeResource(Resource) :
             return {"result" : "fail", "error" : str(e)}, 500
 
         return {"result" : "success"}, 200   
-
+    
+    @jwt_required()
     def delete(self, recipe_id) :
 
-        connection = get_connection()
-
+        user_id = get_jwt_identity()
+        print(recipe_id, user_id)
+        
         try : 
+            connection = get_connection()
+
             query = '''
                     delete from recipe
-                    where id = %s;
+                    where id = %s and user_id = %s;
                     '''
 
-            record = (recipe_id, )
+            record = (recipe_id, user_id)
 
             cursor = connection.cursor()
             cursor.execute(query, record)
@@ -291,7 +298,7 @@ class RecipeMeResource(Resource) :
     def get(self) :
         
         user_id = get_jwt_identity()
-        
+
         try :     
             connection = get_connection()
 
